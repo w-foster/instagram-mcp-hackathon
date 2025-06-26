@@ -1,0 +1,45 @@
+# Python virtual environments
+venv/
+.env
+.env.*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# VS Code settings (if you use VS Code)
+.vscode/
+
+# Logs
+*.log
+
+# Database files (if local SQLite or similar)
+*.sqlite3
+*.db
+
+# FastAPI/Starlette upload files (temporary)
+uploads/
+
+# Celery beat schedule file
+celerybeat-schedule
+
+# Python profiler and coverage
+.prof
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# IDE/project files (optional)
+.idea/
+*.iml
+
+# MCP specific cache or temp (if any)
+mcp_cache/
