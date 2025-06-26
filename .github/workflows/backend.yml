@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
   pull_request:
+    paths:
+      - 'backend/**'
 
 jobs:
   build-and-test:
@@ -26,8 +30,4 @@ jobs:
 
       - name: Run tests
         run: |
-          # Replace with your test command
-          # pytest backend/tests
           echo "Skipping tests for now"
-
-      # Add deploy steps here, e.g., Docker build, push, deploy to server

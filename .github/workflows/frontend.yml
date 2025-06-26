@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'frontend/**'
   pull_request:
+    paths:
+      - 'frontend/**'
 
 jobs:
   build-and-test:
@@ -30,5 +34,3 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: ./frontend
-
-      # You can add deploy steps here (e.g., to Vercel, Netlify, S3)
