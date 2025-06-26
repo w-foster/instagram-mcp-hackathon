@@ -43,3 +43,8 @@ coverage.xml
 
 # MCP specific cache or temp (if any)
 mcp_cache/
+
+# Frontend Nodes
+node_modules/
+
+.DS_Store
