@@ -1,13 +1,19 @@
 import asyncio
 import os
 from typing import Dict, Any, List
-from langgraph_supervisor import create_supervisor
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import MessagesState
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import convert_to_messages, tool
+from langchain_core.messages import convert_to_messages
+from langchain_core.tools import tool
 from pydantic import BaseModel
+
+from get_tags import fetch_hashtag_usernames
+
+MODEL = "o4-mini"
+PROVIDER = "openai"
+
+hashtag_llm = ChatOpenAI(model=MODEL)
 
 
 @tool
@@ -29,7 +35,7 @@ def extract_hashtags(product_info: str, context: str = "") -> str:
     - If previous hashtags were "too specific" (found too few users), be broader
     - If no context, start with medium-specificity hashtags
     
-    Return only hashtags separated by commas, without # symbols.
+    Return only hashtags separated by commas, WITHOUT # (hashtag) symbols.
     """
     
     response = hashtag_llm.invoke(prompt)
@@ -37,7 +43,11 @@ def extract_hashtags(product_info: str, context: str = "") -> str:
 
 @tool 
 def find_instagram_users(hashtags: str) -> str:
-    """Find Instagram usernames who posted with given hashtags."""
+    """Find Instagram usernames who posted with given hashtags.
+    
+    Args:
+        hashtags: Comma separated string of hashtags (WITHOUT # symbol)
+    """
     hashtag_list = [tag.strip() for tag in hashtags.split(",")]
     users = fetch_hashtag_usernames(
         hashtags=hashtag_list,
@@ -48,29 +58,33 @@ def find_instagram_users(hashtags: str) -> str:
     
     # Provide rich feedback for the agent to reason about
     user_count = len(users)
-    if user_count < 5:
+    if user_count < 10:
         return f"Found only {user_count} users with hashtags '{hashtags}'. These hashtags might be too specific or niche."
     elif user_count > 100:
         return f"Found {user_count} users with hashtags '{hashtags}'. These hashtags might be too broad - consider more specific ones."
     else:
         return f"Found {user_count} users with hashtags '{hashtags}': {', '.join(list(users)[:15])}{'...' if user_count > 15 else ''}"
 
-# Enhanced agent prompt
-user_finder_agent = create_react_agent(
-    model="openai:gpt-4-turbo",
-    tools=[extract_hashtags, find_instagram_users],
-    name="user_finder",
-    prompt="""You find Instagram users for marketing campaigns. 
+
+
+def create_user_finder_agent():
+    # Enhanced agent prompt
+    user_finder_agent = create_react_agent(
+        model=f"{PROVIDER}:{MODEL}",
+        tools=[extract_hashtags, find_instagram_users],
+        name="user_finder",
+        prompt="""You find Instagram users for marketing campaigns. 
 
 Your process:
 1. Use extract_hashtags to get relevant hashtags for the product
 2. Use find_instagram_users to discover potential customers
-3. Analyze the results:
-   - If too few users (< 10): Extract broader/different hashtags
-   - If too many users (> 50): Extract more specific hashtags  
-   - If good amount (10-50): You're done!
+3. Analyze the results. You need to consider whether or not the hashtags are too broad or specific, or just right, based on how many users are returned. 
+But you need to make this analysis IN THE CONTEXT of the product in question. For example, a more niche product demands more niche hashtags, even if not many users are found.
+Whereas a very wide-appeal product can afford to have more broad hashtags.
 
-Keep track of what you've tried and learn from the feedback. When calling extract_hashtags again, pass context about what happened before so it can adjust strategy.
+Keep track of what you've tried and learn from the feedback. When calling extract_hashtags again, pass plenty of context about what happened before so it can adjust strategy.
 
 Goal: Find 15-40 relevant potential customers."""
-)
+    )
+
+    return user_finder_agent
