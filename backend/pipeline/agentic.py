@@ -6,6 +6,7 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.graph import MessagesState
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import convert_to_messages
 
 
 class CampaignState(MessagesState):
@@ -125,6 +126,42 @@ async def create_dm_supervisor():
 
 
 
+from langchain_core.messages import convert_to_messages
+
+def pretty_print_message(message, indent=False):
+    pretty_message = message.pretty_repr(html=True)
+    if not indent:
+        print(pretty_message)
+        return
+    indented = "\n".join("\t" + c for c in pretty_message.split("\n"))
+    print(indented)
+
+def pretty_print_messages(update, last_message=False):
+    is_subgraph = False
+    if isinstance(update, tuple):
+        ns, update = update
+        # skip parent graph updates in the printouts
+        if len(ns) == 0:
+            return
+        graph_id = ns[-1].split(":")[0]
+        print(f"Update from subgraph {graph_id}:")
+        print("\n")
+        is_subgraph = True
+    
+    for node_name, node_update in update.items():
+        update_label = f"Update from node {node_name}:"
+        if is_subgraph:
+            update_label = "\t" + update_label
+        print(update_label)
+        print("\n")
+        
+        messages = convert_to_messages(node_update["messages"])
+        if last_message:
+            messages = messages[-1:]
+        for m in messages:
+            pretty_print_message(m, indent=is_subgraph)
+        print("\n")
+
 async def test_dm_supervisor():
     """Test the DM supervisor with sample data"""
     
@@ -133,19 +170,17 @@ async def test_dm_supervisor():
     initial_state = {
         "messages": [{
             "role": "user", 
-            "content": "Research @adamsandler and create a personalized DM about our Eco Phone Case product"
+            "content": "Research @andyx_p and create a personalized DM about our Anime Figurine. MAKE SURE TO CUSTOMISE IT TO THEIR PROFILE, EVEN IF THEY ONLY HAVE 1 POST."
         }]
     }
     
     print("🚀 Starting DM supervisor workflow...")
     
-    # Use async for to iterate through the stream
-    async for chunk in supervisor.astream(initial_state, stream_mode="debug"):
-        print("=" * 50)
-        print(f"Update: {chunk}")
-        print("=" * 50)
+    # Use the pretty print function with updates mode
+    async for chunk in supervisor.astream(initial_state, stream_mode="updates", subgraphs=True):
+        pretty_print_messages(chunk)
     
-    print("DM Creation Complete!")
+    print("✅ DM Creation Complete!")
 
 
 
