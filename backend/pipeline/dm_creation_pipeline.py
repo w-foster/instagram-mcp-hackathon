@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import convert_to_messages
 from pydantic import BaseModel
 
-from dm_creation_prompts import profile_analyzer_prompt, verifier_prompt, message_writer_prompt, supervisor_prompt
+from pipeline.dm_creation_prompts import profile_analyzer_prompt, verifier_prompt, message_writer_prompt, supervisor_prompt
 
 
 MODEL = "o4-mini"

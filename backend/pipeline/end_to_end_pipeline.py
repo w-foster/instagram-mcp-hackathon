@@ -8,8 +8,8 @@ from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
 from langchain_community.document_loaders import WebBaseLoader
 
-from dm_creation_pipeline import create_dm_supervisor, pretty_print_messages
-from user_finding_pipeline import create_user_finder_agent
+from pipeline.dm_creation_pipeline import create_dm_supervisor, pretty_print_messages
+from pipeline.user_finding_pipeline import create_user_finder_agent
 
 
 MODEL = "o4-mini"

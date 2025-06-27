@@ -12,7 +12,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -23,7 +24,7 @@ app.include_router(api_router, prefix="/api")
 async def root():
     return {"message": "Welcome to the Instagram MCP Hackathon backend!"}
 
-@app.on_event("startup")
-async def startup_event():
-    # start your periodic check as a background task
-    asyncio.create_task(run_periodic_check())
+# @app.on_event("startup")
+# async def startup_event():
+#     # start your periodic check as a background task
+#     asyncio.create_task(run_periodic_check())
