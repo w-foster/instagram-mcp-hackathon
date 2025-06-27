@@ -4,28 +4,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Upload, DollarSign, Percent } from "lucide-react";
+import { Plus, DollarSign, Percent, Tag, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ENDPOINTS } from "@/config/env";
 
 interface ProductFormData {
-  name: string;
-  description: string;
+  product: string;
+  category: string;
   price: string;
-  discount: string;
-  imageUrl: string;
+  min_discount: string;
+  max_discount: string;
+  coupon: string;
+  duration: string;
 }
 
 const QuizCreator = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
-    name: "",
-    description: "",
+    product: "",
+    category: "",
     price: "",
-    discount: "",
-    imageUrl: ""
+    min_discount: "",
+    max_discount: "",
+    coupon: "",
+    duration: ""
   });
 
   const handleInputChange = (field: keyof ProductFormData) => (
@@ -37,13 +43,17 @@ const QuizCreator = () => {
     }));
   };
 
-  const calculateDiscountedPrice = () => {
+  const calculateDiscountRange = () => {
     const price = parseFloat(formData.price);
-    const discount = parseFloat(formData.discount);
+    const minDiscount = parseFloat(formData.min_discount);
+    const maxDiscount = parseFloat(formData.max_discount);
     
-    if (isNaN(price) || isNaN(discount)) return null;
+    if (isNaN(price) || isNaN(minDiscount) || isNaN(maxDiscount)) return null;
     
-    return (price * (1 - discount / 100)).toFixed(2);
+    const minPrice = (price * (1 - minDiscount / 100)).toFixed(2);
+    const maxPrice = (price * (1 - maxDiscount / 100)).toFixed(2);
+    
+    return { minPrice, maxPrice, minDiscount, maxDiscount };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,63 +61,67 @@ const QuizCreator = () => {
     setIsSubmitting(true);
 
     try {
-      console.log("Submitting product quiz:", formData);
+      console.log("Submitting product item:", formData);
       
-      // Mock API call - in real app this would call your backend
-      const response = await fetch("http://localhost:8000/api/products", {
+      const response = await fetch(ENDPOINTS.ITEMS, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
+          product: formData.product,
+          category: formData.category,
           price: parseFloat(formData.price),
-          discount_percentage: parseFloat(formData.discount),
-          image_url: formData.imageUrl || null,
-          status: "active"
+          min_discount: parseInt(formData.min_discount),
+          max_discount: parseInt(formData.max_discount),
+          coupon: formData.coupon.toUpperCase(),
+          duration: parseInt(formData.duration),
         }),
       });
 
       if (response.ok) {
         toast({
-          title: "Quiz Created Successfully!",
-          description: "Your product discount quiz has been created and is now active.",
+          title: "Product Quiz Created Successfully!",
+          description: `Your product has been added and will run for ${formData.duration} days.`,
         });
 
         // Reset form
         setFormData({
-          name: "",
-          description: "",
+          product: "",
+          category: "",
           price: "",
-          discount: "",
-          imageUrl: ""
+          min_discount: "",
+          max_discount: "",
+          coupon: "",
+          duration: ""
         });
       } else {
-        throw new Error("Failed to create quiz");
+        throw new Error("Failed to create product");
       }
     } catch (error) {
-      console.error("Error creating quiz:", error);
+      console.error("Error creating product:", error);
       toast({
-        title: "Quiz Created (Demo Mode)",
-        description: "Your quiz has been created successfully in demo mode.",
+        title: "Product Created (Demo Mode)",
+        description: `Your product has been created successfully and will run for ${formData.duration} days.`,
         variant: "default",
       });
 
       // Reset form even in demo mode
       setFormData({
-        name: "",
-        description: "",
+        product: "",
+        category: "",
         price: "",
-        discount: "",
-        imageUrl: ""
+        min_discount: "",
+        max_discount: "",
+        coupon: "",
+        duration: ""
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const discountedPrice = calculateDiscountedPrice();
+  const discountRange = calculateDiscountRange();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -115,7 +129,7 @@ const QuizCreator = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Plus className="h-5 w-5" />
-            <span>Create Product Discount Quiz</span>
+            <span>Create Product for Quiz</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -124,47 +138,68 @@ const QuizCreator = () => {
               {/* Product Details */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="productName">Product Name *</Label>
+                  <Label htmlFor="product">Product Name *</Label>
                   <Input
-                    id="productName"
-                    placeholder="e.g., Premium Dog Toy Set"
-                    value={formData.name}
-                    onChange={handleInputChange("name")}
+                    id="product"
+                    placeholder="e.g., Premium Dog Food"
+                    value={formData.product}
+                    onChange={handleInputChange("product")}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Product Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe your product and why customers will love it..."
-                    value={formData.description}
-                    onChange={handleInputChange("description")}
-                    rows={4}
+                  <Label htmlFor="category">Category *</Label>
+                  <Input
+                    id="category"
+                    placeholder="e.g., Animal Feed, Pet Toys, etc."
+                    value={formData.category}
+                    onChange={handleInputChange("category")}
+                    required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="imageUrl">Product Image URL</Label>
-                  <div className="flex space-x-2">
+                  <Label htmlFor="coupon">Coupon Code *</Label>
+                  <div className="relative">
+                    <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      id="imageUrl"
-                      placeholder="https://example.com/image.jpg"
-                      value={formData.imageUrl}
-                      onChange={handleInputChange("imageUrl")}
+                      id="coupon"
+                      placeholder="REDEEMFOOD"
+                      className="pl-10 uppercase"
+                      value={formData.coupon}
+                      onChange={handleInputChange("coupon")}
+                      required
                     />
-                    <Button type="button" variant="outline" size="icon">
-                      <Upload className="h-4 w-4" />
-                    </Button>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="duration">Quiz Duration (Days) *</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="duration"
+                      type="number"
+                      min="1"
+                      max="365"
+                      placeholder="7"
+                      className="pl-10"
+                      value={formData.duration}
+                      onChange={handleInputChange("duration")}
+                      required
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Quiz will automatically complete after this duration. Completed quizzes are deleted after 7 days.
+                  </p>
                 </div>
               </div>
 
               {/* Pricing */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="price">Original Price ($) *</Label>
+                  <Label htmlFor="price">Product Price ($) *</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -172,7 +207,7 @@ const QuizCreator = () => {
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="29.99"
+                      placeholder="23.99"
                       className="pl-10"
                       value={formData.price}
                       onChange={handleInputChange("price")}
@@ -181,38 +216,71 @@ const QuizCreator = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="discount">Discount Percentage *</Label>
-                  <div className="relative">
-                    <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="discount"
-                      type="number"
-                      min="1"
-                      max="90"
-                      placeholder="20"
-                      className="pl-10"
-                      value={formData.discount}
-                      onChange={handleInputChange("discount")}
-                      required
-                    />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minDiscount">Min Discount (%) *</Label>
+                    <div className="relative">
+                      <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="minDiscount"
+                        type="number"
+                        min="1"
+                        max="90"
+                        placeholder="10"
+                        className="pl-10"
+                        value={formData.min_discount}
+                        onChange={handleInputChange("min_discount")}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="maxDiscount">Max Discount (%) *</Label>
+                    <div className="relative">
+                      <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="maxDiscount"
+                        type="number"
+                        min="1"
+                        max="90"
+                        placeholder="30"
+                        className="pl-10"
+                        value={formData.max_discount}
+                        onChange={handleInputChange("max_discount")}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Price Preview */}
-                {discountedPrice && (
+                {discountRange && (
                   <Alert>
                     <AlertDescription>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-gray-500 line-through">${formData.price}</span>
-                          <span className="ml-2 text-green-600 font-semibold text-lg">
-                            ${discountedPrice}
-                          </span>
+                      <div className="space-y-2">
+                        <div className="font-medium">Discount Range Preview:</div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-gray-500 line-through text-sm">${formData.price}</span>
+                              <span className="ml-2 text-green-600 font-semibold">
+                                ${discountRange.maxPrice} - ${discountRange.minPrice}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {discountRange.minDiscount}% - {discountRange.maxDiscount}% OFF
+                            </div>
+                          </div>
+                          <Badge className="bg-blue-100 text-blue-800">
+                            {formData.coupon || "COUPON"}
+                          </Badge>
                         </div>
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                          {formData.discount}% OFF
-                        </span>
+                        {formData.duration && (
+                          <div className="text-sm text-gray-600 border-t pt-2">
+                            Active for {formData.duration} days
+                          </div>
+                        )}
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -220,37 +288,39 @@ const QuizCreator = () => {
               </div>
             </div>
 
-            {/* Preview */}
-            {formData.imageUrl && (
+            {/* Preview Card */}
+            {formData.product && discountRange && (
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Quiz Preview</h3>
+                <h3 className="text-lg font-semibold mb-4">Product Preview</h3>
                 <Card className="max-w-sm">
-                  <div className="aspect-square bg-gray-100">
-                    <img
-                      src={formData.imageUrl}
-                      alt="Product preview"
-                      className="w-full h-full object-cover rounded-t-lg"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=400&fit=crop";
-                      }}
-                    />
-                  </div>
                   <CardContent className="p-4">
-                    <h4 className="font-semibold">{formData.name || "Product Name"}</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {formData.description || "Product description will appear here..."}
-                    </p>
-                    {discountedPrice && (
-                      <div className="mt-3 flex items-center justify-between">
-                        <div>
-                          <span className="text-gray-500 line-through text-sm">${formData.price}</span>
-                          <span className="ml-2 text-green-600 font-bold">${discountedPrice}</span>
-                        </div>
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
-                          {formData.discount}% OFF
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold">{formData.product}</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {formData.category}
+                      </Badge>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div>
+                        <span className="text-gray-500 line-through text-sm">${formData.price}</span>
+                        <span className="ml-2 text-green-600 font-bold">
+                          ${discountRange.maxPrice} - ${discountRange.minPrice}
                         </span>
                       </div>
-                    )}
+                      <div className="text-right">
+                        <div className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium mb-1">
+                          UP TO {discountRange.maxDiscount}% OFF
+                        </div>
+                        <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                          {formData.coupon}
+                        </div>
+                        {formData.duration && (
+                          <div className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium mt-1">
+                            {formData.duration} DAYS
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -261,21 +331,23 @@ const QuizCreator = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setFormData({
-                  name: "",
-                  description: "",
+                  product: "",
+                  category: "",
                   price: "",
-                  discount: "",
-                  imageUrl: ""
+                  min_discount: "",
+                  max_discount: "",
+                  coupon: "",
+                  duration: ""
                 })}
               >
                 Reset
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !formData.name || !formData.price || !formData.discount}
+                disabled={isSubmitting || !formData.product || !formData.category || !formData.price || !formData.min_discount || !formData.max_discount || !formData.coupon || !formData.duration}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
-                {isSubmitting ? "Creating Quiz..." : "Create Quiz"}
+                {isSubmitting ? "Creating Product..." : "Create Product"}
               </Button>
             </div>
           </form>

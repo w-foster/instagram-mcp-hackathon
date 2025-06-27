@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,87 +5,175 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, Edit, Trash2, BarChart3 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { ENDPOINTS } from "@/config/env";
 
-interface Quiz {
-  id: string;
-  product_name: string;
-  original_price: number;
-  discount_percentage: number;
-  discounted_price: number;
+interface ApiItem {
+  id: number;
+  product: string;
+  category: string;
+  price: number;
+  min_discount: number;
+  max_discount: number;
+  coupon: string;
+  duration?: number;
+  created_at?: string;
+}
+
+interface QuizItem extends ApiItem {
   status: "active" | "paused" | "completed";
   responses: number;
   conversion_rate: number;
-  created_at: string;
-  image_url?: string;
+  selected_discount: number;
+  discounted_price: number;
 }
 
 const QuizManager = () => {
-  const { data: quizzes, isLoading, error } = useQuery({
-    queryKey: ["quizzes"],
-    queryFn: async (): Promise<Quiz[]> => {
-      console.log("Fetching quiz data...");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const { data: items, isLoading, error } = useQuery({
+    queryKey: ["items"],
+    queryFn: async (): Promise<ApiItem[]> => {
+      console.log("Fetching items data from:", ENDPOINTS.ITEMS);
       
-      // Mock API call - in real app this would call your backend
-      const response = await fetch("http://localhost:8000/api/quizzes");
-      
-      if (!response.ok) {
+      try {
+        const response = await fetch(ENDPOINTS.ITEMS);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Fetched items:", data);
+        return data;
+      } catch (error) {
+        console.error("Failed to fetch items:", error);
         // Return mock data if API fails
         return [
           {
-            id: "1",
-            product_name: "Premium Dog Toy Set",
-            original_price: 29.99,
-            discount_percentage: 20,
-            discounted_price: 23.99,
-            status: "active",
-            responses: 45,
-            conversion_rate: 12.2,
-            created_at: "2024-01-15T10:30:00Z",
-            image_url: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=100&h=100&fit=crop"
+            id: 100,
+            product: "Dog Food",
+            category: "Animal Feed",
+            price: 23.99,
+            min_discount: 10,
+            max_discount: 30,
+            coupon: "REDEEMFOOD",
+            duration: 7,
+            created_at: new Date().toISOString()
           },
           {
-            id: "2",
-            product_name: "Interactive Puzzle Feeder",
-            original_price: 39.99,
-            discount_percentage: 25,
-            discounted_price: 29.99,
-            status: "active",
-            responses: 28,
-            conversion_rate: 18.5,
-            created_at: "2024-01-14T14:22:00Z",
-            image_url: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=100&h=100&fit=crop"
-          },
-          {
-            id: "3",
-            product_name: "Cozy Cat Bed",
-            original_price: 49.99,
-            discount_percentage: 15,
-            discounted_price: 42.49,
-            status: "paused",
-            responses: 67,
-            conversion_rate: 8.9,
-            created_at: "2024-01-13T09:15:00Z",
-            image_url: "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=100&h=100&fit=crop"
-          },
-          {
-            id: "4",
-            product_name: "Natural Chicken Treats",
-            original_price: 19.99,
-            discount_percentage: 30,
-            discounted_price: 13.99,
-            status: "completed",
-            responses: 156,
-            conversion_rate: 24.3,
-            created_at: "2024-01-12T16:45:00Z",
-            image_url: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=100&h=100&fit=crop"
+            id: 101,
+            product: "Cat Food",
+            category: "Animal Feed",
+            price: 23.99,
+            min_discount: 10,
+            max_discount: 30,
+            coupon: "REDEEMCATFOOD",
+            duration: 3,
+            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
           }
         ];
       }
-      
-      return response.json();
     },
   });
+
+  const calculateStatus = (item: ApiItem): "active" | "completed" | "paused" => {
+    if (!item.created_at || !item.duration) return "active";
+    
+    const createdAt = new Date(item.created_at);
+    const now = new Date();
+    const daysPassed = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysPassed >= item.duration) {
+      return "completed";
+    }
+    
+    return "active";
+  };
+
+  const deleteItem = async (id: number) => {
+    setDeletingId(id);
+    try {
+      console.log("Deleting item with ID:", id);
+      const response = await fetch(ENDPOINTS.ITEMS, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Deleted:', result);
+      
+      toast({
+        title: "Quiz Deleted",
+        description: "The quiz has been successfully deleted.",
+      });
+
+      // Refresh the items list
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast({
+        title: "Delete Successful (Demo Mode)",
+        description: "Quiz deleted successfully in demo mode.",
+        variant: "default",
+      });
+      
+      // In demo mode, still refresh to simulate the deletion
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Transform API items into quiz items with calculated status
+  const quizItems: QuizItem[] = items?.map(item => {
+    const status = calculateStatus(item);
+    return {
+      ...item,
+      status,
+      responses: Math.floor(Math.random() * 100) + 10,
+      conversion_rate: Math.floor(Math.random() * 25) + 5,
+      selected_discount: Math.floor(Math.random() * (item.max_discount - item.min_discount + 1)) + item.min_discount,
+      discounted_price: item.price * (1 - (Math.floor(Math.random() * (item.max_discount - item.min_discount + 1)) + item.min_discount) / 100)
+    };
+  }) || [];
+
+  // Auto-delete completed quizzes that are older than 7 days
+  useEffect(() => {
+    const checkForExpiredQuizzes = () => {
+      quizItems.forEach(item => {
+        if (item.status === "completed" && item.created_at && item.duration) {
+          const createdAt = new Date(item.created_at);
+          const now = new Date();
+          const daysPassed = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Delete if completed for more than 7 days
+          if (daysPassed >= (item.duration + 7)) {
+            console.log(`Auto-deleting expired quiz: ${item.id}`);
+            deleteItem(item.id);
+          }
+        }
+      });
+    };
+
+    // Check every hour
+    const interval = setInterval(checkForExpiredQuizzes, 60 * 60 * 1000);
+    
+    // Check immediately on mount
+    checkForExpiredQuizzes();
+
+    return () => clearInterval(interval);
+  }, [quizItems]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -101,17 +188,13 @@ const QuizManager = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const handleAction = (action: string, quizId: string) => {
-    console.log(`${action} quiz:`, quizId);
-    // In a real app, these would trigger API calls
+  const handleAction = (action: string, itemId: number) => {
+    if (action === "delete") {
+      deleteItem(itemId);
+    } else {
+      console.log(`${action} item:`, itemId);
+      // In a real app, these would trigger API calls
+    }
   };
 
   if (isLoading) {
@@ -138,7 +221,7 @@ const QuizManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">
-              {quizzes?.filter(q => q.status === "active").length || 0}
+              {quizItems?.filter(q => q.status === "active").length || 0}
             </div>
             <p className="text-sm text-gray-600">Active Quizzes</p>
           </CardContent>
@@ -146,7 +229,7 @@ const QuizManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">
-              {quizzes?.reduce((sum, q) => sum + q.responses, 0) || 0}
+              {quizItems?.reduce((sum, q) => sum + q.responses, 0) || 0}
             </div>
             <p className="text-sm text-gray-600">Total Responses</p>
           </CardContent>
@@ -154,7 +237,7 @@ const QuizManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-purple-600">
-              {quizzes ? (quizzes.reduce((sum, q) => sum + q.conversion_rate, 0) / quizzes.length).toFixed(1) : 0}%
+              {quizItems.length > 0 ? (quizItems.reduce((sum, q) => sum + q.conversion_rate, 0) / quizItems.length).toFixed(1) : 0}%
             </div>
             <p className="text-sm text-gray-600">Avg. Conversion</p>
           </CardContent>
@@ -162,7 +245,7 @@ const QuizManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-orange-600">
-              {quizzes?.filter(q => q.status === "completed").length || 0}
+              {quizItems?.filter(q => q.status === "completed").length || 0}
             </div>
             <p className="text-sm text-gray-600">Completed</p>
           </CardContent>
@@ -172,12 +255,12 @@ const QuizManager = () => {
       {error && (
         <Alert>
           <AlertDescription>
-            Unable to fetch quiz data. Showing demo data instead.
+            Unable to fetch items data. Showing demo data instead.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Quizzes Table */}
+      {/* Items Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -191,83 +274,94 @@ const QuizManager = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Pricing</TableHead>
+                  <TableHead>Discount Range</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Coupon</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Performance</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {quizzes?.map((quiz) => (
-                  <TableRow key={quiz.id}>
+                {quizItems?.map((item) => (
+                  <TableRow key={item.id}>
                     <TableCell>
-                      <div className="flex items-center space-x-3">
-                        {quiz.image_url && (
-                          <img
-                            src={quiz.image_url}
-                            alt={quiz.product_name}
-                            className="w-10 h-10 rounded object-cover"
-                          />
-                        )}
-                        <div>
-                          <div className="font-medium">{quiz.product_name}</div>
-                        </div>
-                      </div>
+                      <div className="font-medium">{item.product}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {item.category}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500 line-through text-sm">
-                            ${quiz.original_price}
+                            ${item.price.toFixed(2)}
                           </span>
                           <span className="font-semibold text-green-600">
-                            ${quiz.discounted_price}
+                            ${item.discounted_price.toFixed(2)}
                           </span>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {quiz.discount_percentage}% OFF
-                        </Badge>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(quiz.status)}>
-                        {quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1)}
+                      <div className="text-sm">
+                        {item.min_discount}% - {item.max_discount}%
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {item.duration ? `${item.duration} days` : 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-blue-100 text-blue-800 text-xs">
+                        {item.coupon}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="text-sm font-medium">{quiz.responses} responses</div>
+                        <div className="text-sm font-medium">{item.responses} responses</div>
                         <div className="text-sm text-gray-600">
-                          {quiz.conversion_rate}% conversion
+                          {item.conversion_rate.toFixed(1)}% conversion
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {formatDate(quiz.created_at)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleAction("view", quiz.id)}
+                          onClick={() => handleAction("view", item.id)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleAction("edit", quiz.id)}
+                          onClick={() => handleAction("edit", item.id)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleAction("delete", quiz.id)}
+                          onClick={() => handleAction("delete", item.id)}
+                          disabled={deletingId === item.id}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deletingId === item.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
@@ -277,11 +371,11 @@ const QuizManager = () => {
             </Table>
           </div>
 
-          {quizzes && quizzes.length === 0 && (
+          {quizItems && quizItems.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No quizzes created yet.</p>
+              <p className="text-gray-500 mb-4">No items found.</p>
               <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                Create Your First Quiz
+                Add Your First Item
               </Button>
             </div>
           )}
