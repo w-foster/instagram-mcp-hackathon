@@ -1,17 +1,26 @@
 # app/core/config.py
 
-import os
 from pydantic import BaseSettings
+from supabase import create_client
 
 class Settings(BaseSettings):
-    ENV: str = os.getenv("ENV", "local")  # 'local' or 'prod'
+    ENV: str = "local"
     MCP_LOCAL_URL: str = "http://localhost:8001"
-    MCP_PROD_URL: str = "https://mcp.yourdomain.com/api"
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    MCP_PROD_URL: str = ""
+    LLM_API_KEY: str = ""
+    LOG_LEVEL: str = "INFO"
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
 
     @property
     def mcp_url(self):
         return self.MCP_LOCAL_URL if self.ENV == "local" else self.MCP_PROD_URL
 
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
 settings = Settings()
+
+# Create Supabase client instance here
+supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
