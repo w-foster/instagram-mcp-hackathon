@@ -238,7 +238,7 @@ async def run_instagram_campaign(product_payload: ProductPayload):
     }
     
     print("Starting Instagram Campaign...")
-    print(f"Product: {product_info}")
+    print(f"Product: {product_payload['title']}")
     print("\n" + "="*60 + "\n")
     
     # Execute campaign

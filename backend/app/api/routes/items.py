@@ -33,7 +33,7 @@ async def create_item(item: dict):
             link=item["product_url"]
         )
 
-        run_instagram_campaign(payload)
+        await run_instagram_campaign(payload)
 
         return inserted
     except Exception as e:
