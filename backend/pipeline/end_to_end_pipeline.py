@@ -1,21 +1,38 @@
 import operator
-from typing import Annotated, List
+from typing import Annotated, List, Dict
 from typing_extensions import TypedDict
 from pydantic import BaseModel, Field
 
+from langchain_openai import ChatOpenAI
 from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
+from langchain_community.document_loaders import WebBaseLoader
 
 from dm_creation_pipeline import create_dm_supervisor, pretty_print_messages
 from user_finding_pipeline import create_user_finder_agent
 
 
-# Pydantic model for user finder structured output (assume this exists)
+MODEL = "o4-mini"
+PROVIDER = "openai"
+
+llm = ChatOpenAI(model=MODEL)
+
+
+
+
+# Pydantic model for user finder structured output 
 class DiscoveredUsers(BaseModel):
     usernames: List[str] = Field(description="List of discovered Instagram usernames")
 
+class ProductPayload(TypedDict):
+    title: str
+    category: str
+    price: str
+    link: str 
+
 # Overall campaign state (main graph state)
 class CampaignState(TypedDict):
+    product_payload: ProductPayload
     product_info: str
     discovered_users: List[str]  # From user finder
     dm_results: Annotated[List[str], operator.add]  # Collected DM results (reduce step)
@@ -29,7 +46,58 @@ class DMState(TypedDict):
 
 
 
-# Node functions
+# NODE FUNCTIONS
+
+async def product_info_scraper(state: CampaignState):
+    """Generate a formatted product description from the product URL"""
+    payload = state["product_payload"]
+    
+    try:
+        # Load the webpage content
+        loader = WebBaseLoader(
+            web_path=payload["link"],
+            bs_get_text_kwargs={"separator": " ", "strip": True},
+            continue_on_failure=True  # Don't crash if URL fails
+        )
+        
+        # Use async loading
+        docs = []
+        async for doc in loader.alazy_load():
+            docs.append(doc)
+        
+        if not docs:
+            # Fallback if scraping fails
+            product_info = f"Product: {payload['title']} - {payload['category']} - ${payload['price']}"
+        else:
+            # Extract content and create LLM-formatted description
+            raw_content = docs[0].page_content[:3000]  # Limit to avoid token limits
+            
+            formatting_prompt = f"""
+            Create a concise, engaging product description based on this scraped content and product details:
+            
+            Product Title: {payload['title']}
+            Category: {payload['category']} 
+            Price: ${payload['price']}
+            
+            Scraped Content: {raw_content}
+            
+            Generate a paragraph product description of this item, including the most relevant details about it. Make it at least 3 sentences.
+            Include a title and price above the description too, but output all as one string.
+            """
+            
+            response = await llm.ainvoke(formatting_prompt)
+            product_info = response.content.strip()
+
+    
+    except Exception as e:
+        # Fallback if anything fails
+        product_info = f"High-quality {payload['category']}: {payload['title']} - Available for ${payload['price']}. Perfect for enthusiasts and collectors."
+        print(f"Scraping failed, using fallback: {e}")
+    
+    print(product_info)
+    return {"product_info": product_info}
+
+
 
 async def user_finder_node(state: CampaignState):
     """User finder agent - assume it returns structured output"""
@@ -128,12 +196,14 @@ async def create_campaign_graph():
     graph = StateGraph(CampaignState)
     
     # Add nodes
+    graph.add_node("product_info_scraper", product_info_scraper)
     graph.add_node("user_finder", user_finder_node)
     graph.add_node("dm_creation", dm_creation_node)  # This gets called multiple times via Send
     graph.add_node("campaign_summary", create_campaign_summary)
     
     # Add edges
-    graph.add_edge(START, "user_finder")
+    graph.add_edge(START, "product_info_scraper")
+    graph.add_edge("product_info_scraper", "user_finder")
     
     # Key part: conditional edge with Send API for map-reduce
     graph.add_conditional_edges(
@@ -152,7 +222,7 @@ async def create_campaign_graph():
 
 
 # Main execution function
-async def run_instagram_campaign(product_info: str):
+async def run_instagram_campaign(product_payload: ProductPayload):
     """Run the complete Instagram campaign with map-reduce"""
     
     # Create graph
@@ -160,7 +230,8 @@ async def run_instagram_campaign(product_info: str):
     
     # Initial state
     initial_state = {
-        "product_info": product_info,
+        "product_payload": product_payload,
+        "product_info": "",
         "discovered_users": [],
         "dm_results": [],
         "campaign_summary": ""
@@ -191,5 +262,12 @@ Safety & Age Recommendation:
 This is a collector’s item, not a toy. Contains small parts—choking hazard. Recommended for ages 14 and up.
 """
 
+    fake_product_payload = {
+        "title": "Dragon Ball Z, S.H. Figuarts Action Figure -- Super Saiyan Son Goku The Games Begin Ver. 15cm",
+        "category": "Collectibles & Figurines", 
+        "price": "29.99",
+        "link": "https://hobbyfigures.co.uk/collections/anime/products/dragon-ball-z-s-h-figuarts-action-figure-super-saiyan-son-goku-the-games-begin-ver-15cm"
+    }
+
     
-    asyncio.run(run_instagram_campaign(product_info))
+    asyncio.run(run_instagram_campaign(fake_product_payload))
