@@ -7,17 +7,25 @@ from langgraph.graph import MessagesState
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import convert_to_messages
+from pydantic import BaseModel
 
 
-class CampaignState(MessagesState):
-    product: Dict[str, Any] = {}
-    current_username: str = ""
-    profile_analysis: Dict[str, Any] = {}
-    draft_message: str = ""
-    verification_result: Dict[str, Any] = {}
+
+# class CampaignState(MessagesState):
+#     product: Dict[str, Any] = {}
+#     current_username: str = ""
+#     profile_analysis: Dict[str, Any] = {}
+#     draft_message: str = ""
+#     verification_result: Dict[str, Any] = {}
     
-    remaining_steps: int = 10
-    is_last_step: bool = False
+#     remaining_steps: int = 10
+#     is_last_step: bool = False
+
+
+class DMResult(BaseModel):
+    final_dm: str
+    target_user: str
+    verification_status: str
 
 
 
@@ -69,16 +77,16 @@ async def create_dm_agents():
     tools = instagram_tools
     
     profile_analyzer = create_react_agent(
-        model="openai:gpt-4o",
+        model="openai:o4-mini",
         tools=tools,  # get_user_info, get_user_posts, etc.
         name="profile_analyzer",
-        prompt="You analyze Instagram profiles to understand users' interests and content style." \
+        prompt="You analyze Instagram profiles to understand users' interests and content style. You are NOT writing the DM itself, just gathering context which will be passed on to a Writer." \
         "Use the instagram MCP tools that you have available to you to collect info. " \
-        "DO NOT send any messages or use tools that are not relevant to that specific task. You are just collecting context to be passed on."
+        "DO NOT send any messages or use tools that are not relevant to that specific task."
     )
     
     message_writer = create_react_agent(
-        model="openai:gpt-4o", 
+        model="openai:o4-mini", 
         tools=[],  # send_message, plus analysis tools
         name="message_writer", 
         prompt="You write personalized DMs based on profile analysis and product info. " \
@@ -87,7 +95,7 @@ async def create_dm_agents():
     )
     
     verifier = create_react_agent(
-        model="openai:gpt-4o",
+        model="openai:o4-mini",
         tools=[],  # No Instagram tools, just verification
         name="verifier",
         prompt="You verify DM quality - is it personalized, appropriate, and compelling? Answer with your assessment."
@@ -97,10 +105,10 @@ async def create_dm_agents():
 
 
 
-supervisor_prompt = """You coordinate Instagram DM creation. Process:
+supervisor_prompt = """You are a supervisor agent, coordinating Instagram DM creation. You have a number of sub-agents. ONLY call one of them at a time. Process:
         1. Have profile_analyzer research the target user
         2. Have message_writer create personalized DM based on analysis, being sure to GIVE IT the context that you got from profile_analyzer. 
-        3. Have verifier check message quality
+        3. Have verifier check message quality (remember, YOU need to pass the crafted DM to the verifier, this is not automatic)
         4. If verification fails, coordinate improvements (being sure to pass any feedback to sub-agents you call)
         Finish once you have a crafted, verified DM. Return that DM."""
 
@@ -115,18 +123,22 @@ async def create_dm_supervisor():
     
     dm_supervisor = create_supervisor(
         agents=[profile_analyzer, message_writer, verifier],
-        model=ChatOpenAI(model="gpt-4"),
+        model=ChatOpenAI(model="o4-mini"),
         #state_schema=CampaignState,
-        prompt=supervisor_prompt,
+        prompt=supervisor_prompt + "\n\nAt the end, simply return the final DM and nothing else.",
         add_handoff_back_messages=True,
-        output_mode="full_history",
+        output_mode="last_message",
     ).compile()
     
     return dm_supervisor
 
 
 
-from langchain_core.messages import convert_to_messages
+
+
+
+
+
 
 def pretty_print_message(message, indent=False):
     pretty_message = message.pretty_repr(html=True)
@@ -155,11 +167,22 @@ def pretty_print_messages(update, last_message=False):
         print(update_label)
         print("\n")
         
-        messages = convert_to_messages(node_update["messages"])
-        if last_message:
-            messages = messages[-1:]
-        for m in messages:
-            pretty_print_message(m, indent=is_subgraph)
+        # Handle structured response nodes
+        if node_name == "generate_structured_response":
+            print(f"Structured Response: {node_update}")
+            print("\n")
+            continue
+            
+        # Handle regular message nodes
+        if "messages" in node_update:
+            messages = convert_to_messages(node_update["messages"])
+            if last_message:
+                messages = messages[-1:]
+            for m in messages:
+                pretty_print_message(m, indent=is_subgraph)
+        else:
+            # Handle other types of updates
+            print(f"Other update: {node_update}")
         print("\n")
 
 async def test_dm_supervisor():
@@ -170,17 +193,17 @@ async def test_dm_supervisor():
     initial_state = {
         "messages": [{
             "role": "user", 
-            "content": "Research @andyx_p and create a personalized DM about our Anime Figurine. MAKE SURE TO CUSTOMISE IT TO THEIR PROFILE, EVEN IF THEY ONLY HAVE 1 POST."
+            "content": "Research @andyx_p and create a personalized sales DM about our Anime Figurine. MAKE SURE TO CUSTOMISE IT TO THEIR PROFILE, EVEN IF THEY ONLY HAVE 1 POST."
         }]
     }
     
-    print("🚀 Starting DM supervisor workflow...")
+    print("\nStarting DM supervisor workflow...\n")
     
     # Use the pretty print function with updates mode
     async for chunk in supervisor.astream(initial_state, stream_mode="updates", subgraphs=True):
         pretty_print_messages(chunk)
     
-    print("✅ DM Creation Complete!")
+    print("\nDM Creation Complete!\n")
 
 
 
