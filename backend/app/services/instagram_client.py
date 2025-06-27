@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 from app.core.config import settings
 from langchain_mcp_adapters.client import MultiServerMCPClient
+import json
 
 load_dotenv()
 
@@ -50,7 +51,11 @@ class InstagramClient:
         await self.initialize_tools()
         tool = self._get_tool("list_pending_chats")
         resp = await tool.arun({"amount": amount})
-        return resp
+        try:
+            resp_dict = json.loads(resp) if isinstance(resp, str) else resp
+        except Exception:
+            resp_dict = resp
+        return resp_dict
 
     async def list_messages(self, thread_id: str, amount: int = 20) -> Dict[str, Any]:
         await self.initialize_tools()

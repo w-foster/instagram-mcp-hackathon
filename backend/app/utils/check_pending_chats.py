@@ -1,6 +1,6 @@
 import asyncio
 from app.services.instagram_client import InstagramClient
-from riddles import handle_riddle_conversation
+from app.utils.riddles import handle_riddle_conversation
 
 CHECK_INTERVAL_SECONDS = 10 * 60  # 10 minutes
 
