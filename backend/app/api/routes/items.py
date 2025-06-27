@@ -25,7 +25,7 @@ async def create_item(item: dict):
         print("Error inserting items to supabase")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/delete")
+@router.delete("/")
 async def delete_item_route(item: DeleteItemRequest):
     try:
         deleted = delete_item(item.id)
