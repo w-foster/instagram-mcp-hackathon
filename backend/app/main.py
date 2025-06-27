@@ -21,4 +21,4 @@ app.include_router(api_router, prefix="/api")
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the Instagram MCP backend!"}
+    return {"message": "Welcome to the Instagram MCP Hackathon backend!"}
