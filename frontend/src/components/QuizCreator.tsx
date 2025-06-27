@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, DollarSign, Percent, Tag, Clock } from "lucide-react";
+import { Plus, DollarSign, Percent, Tag, Clock, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ENDPOINTS } from "@/config/env";
 
@@ -19,6 +18,7 @@ interface ProductFormData {
   max_discount: string;
   coupon: string;
   duration: string;
+  product_url: string;
 }
 
 const QuizCreator = () => {
@@ -31,7 +31,8 @@ const QuizCreator = () => {
     min_discount: "",
     max_discount: "",
     coupon: "",
-    duration: ""
+    duration: "",
+    product_url: ""
   });
 
   const handleInputChange = (field: keyof ProductFormData) => (
@@ -76,6 +77,7 @@ const QuizCreator = () => {
           max_discount: parseInt(formData.max_discount),
           coupon: formData.coupon.toUpperCase(),
           duration: parseInt(formData.duration),
+          product_url: formData.product_url,
         }),
       });
 
@@ -93,7 +95,8 @@ const QuizCreator = () => {
           min_discount: "",
           max_discount: "",
           coupon: "",
-          duration: ""
+          duration: "",
+          product_url: ""
         });
       } else {
         throw new Error("Failed to create product");
@@ -114,7 +117,8 @@ const QuizCreator = () => {
         min_discount: "",
         max_discount: "",
         coupon: "",
-        duration: ""
+        duration: "",
+        product_url: ""
       });
     } finally {
       setIsSubmitting(false);
@@ -135,7 +139,7 @@ const QuizCreator = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Product Details */}
+              {/* Left Column */}
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="product">Product Name *</Label>
@@ -159,6 +163,43 @@ const QuizCreator = () => {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="product_url">Product URL *</Label>
+                  <div className="relative">
+                    <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="product_url"
+                      type="url"
+                      placeholder="https://example.com/product"
+                      className="pl-10"
+                      value={formData.product_url}
+                      onChange={handleInputChange("product_url")}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="price">Product Price ($) *</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="23.99"
+                      className="pl-10"
+                      value={formData.price}
+                      onChange={handleInputChange("price")}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor="coupon">Coupon Code *</Label>
                   <div className="relative">
@@ -193,27 +234,6 @@ const QuizCreator = () => {
                   <p className="text-sm text-gray-500 mt-1">
                     Quiz will automatically complete after this duration. Completed quizzes are deleted after 7 days.
                   </p>
-                </div>
-              </div>
-
-              {/* Pricing */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="price">Product Price ($) *</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="23.99"
-                      className="pl-10"
-                      value={formData.price}
-                      onChange={handleInputChange("price")}
-                      required
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -337,14 +357,15 @@ const QuizCreator = () => {
                   min_discount: "",
                   max_discount: "",
                   coupon: "",
-                  duration: ""
+                  duration: "",
+                  product_url: ""
                 })}
               >
                 Reset
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !formData.product || !formData.category || !formData.price || !formData.min_discount || !formData.max_discount || !formData.coupon || !formData.duration}
+                disabled={isSubmitting || !formData.product || !formData.category || !formData.price || !formData.min_discount || !formData.max_discount || !formData.coupon || !formData.duration || !formData.product_url}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 {isSubmitting ? "Creating Product..." : "Create Product"}

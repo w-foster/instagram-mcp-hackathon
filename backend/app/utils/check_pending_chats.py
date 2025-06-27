@@ -6,7 +6,7 @@ CHECK_INTERVAL_SECONDS = 10 * 60  # 10 minutes
 
 async def check_and_process_unread_chats(insta: InstagramClient):
     print("🔍 Checking for unread chats...")
-    chats_resp = await insta.list_chats(amount=20, selected_filter="unread")
+    chats_resp = await insta.list_chats(amount=20)
     
     if not chats_resp.get("success") or not chats_resp.get("threads"):
         print("⚠️ No chats found or error occurred.")

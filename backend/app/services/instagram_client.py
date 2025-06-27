@@ -45,6 +45,14 @@ class InstagramClient:
         await self.initialize_tools()
         tool = self._get_tool("list_chats")
         resp = await tool.arun({"amount": amount})
+
+        # If resp is a string, try parsing as JSON
+        if isinstance(resp, str):
+            try:
+                resp = json.loads(resp)
+            except Exception:
+                resp = {"success": False, "message": "Failed to parse JSON response", "raw_response": resp}
+
         return resp
 
     async def list_pending_chats(self, amount: int = 20) -> Dict[str, Any]:

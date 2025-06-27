@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, Edit, Trash2, BarChart3 } from "lucide-react";
+import { Trash2, BarChart3 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ENDPOINTS } from "@/config/env";
@@ -23,8 +23,6 @@ interface ApiItem {
 
 interface QuizItem extends ApiItem {
   status: "active" | "paused" | "completed";
-  responses: number;
-  conversion_rate: number;
   selected_discount: number;
   discounted_price: number;
 }
@@ -141,8 +139,6 @@ const QuizManager = () => {
     return {
       ...item,
       status,
-      responses: Math.floor(Math.random() * 100) + 10,
-      conversion_rate: Math.floor(Math.random() * 25) + 5,
       selected_discount: Math.floor(Math.random() * (item.max_discount - item.min_discount + 1)) + item.min_discount,
       discounted_price: item.price * (1 - (Math.floor(Math.random() * (item.max_discount - item.min_discount + 1)) + item.min_discount) / 100)
     };
@@ -188,15 +184,6 @@ const QuizManager = () => {
     }
   };
 
-  const handleAction = (action: string, itemId: number) => {
-    if (action === "delete") {
-      deleteItem(itemId);
-    } else {
-      console.log(`${action} item:`, itemId);
-      // In a real app, these would trigger API calls
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -217,29 +204,13 @@ const QuizManager = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">
               {quizItems?.filter(q => q.status === "active").length || 0}
             </div>
             <p className="text-sm text-gray-600">Active Quizzes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
-              {quizItems?.reduce((sum, q) => sum + q.responses, 0) || 0}
-            </div>
-            <p className="text-sm text-gray-600">Total Responses</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">
-              {quizItems.length > 0 ? (quizItems.reduce((sum, q) => sum + q.conversion_rate, 0) / quizItems.length).toFixed(1) : 0}%
-            </div>
-            <p className="text-sm text-gray-600">Avg. Conversion</p>
           </CardContent>
         </Card>
         <Card>
@@ -280,7 +251,6 @@ const QuizManager = () => {
                   <TableHead>Duration</TableHead>
                   <TableHead>Coupon</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Performance</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -328,42 +298,18 @@ const QuizManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">{item.responses} responses</div>
-                        <div className="text-sm text-gray-600">
-                          {item.conversion_rate.toFixed(1)}% conversion
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAction("view", item.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAction("edit", item.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAction("delete", item.id)}
-                          disabled={deletingId === item.id}
-                        >
-                          {deletingId === item.id ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteItem(item.id)}
+                        disabled={deletingId === item.id}
+                      >
+                        {deletingId === item.id ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
