@@ -58,13 +58,16 @@ def find_instagram_users(hashtags: str) -> str:
     
     # Provide rich feedback for the agent to reason about
     user_count = len(users)
-    if user_count < 10:
-        return f"Found only {user_count} users with hashtags '{hashtags}'. These hashtags might be too specific or niche."
-    elif user_count > 100:
-        return f"Found {user_count} users with hashtags '{hashtags}'. These hashtags might be too broad - consider more specific ones."
-    else:
-        return f"Found {user_count} users with hashtags '{hashtags}': {', '.join(list(users)[:15])}{'...' if user_count > 15 else ''}"
+    # if user_count < 10:
+    #     return f"Found only {user_count} users with hashtags '{hashtags}'. These hashtags might be too specific or niche. \nUsers found: {users}"
+    # elif user_count > 100:
+    #     return f"Found {user_count} users with hashtags '{hashtags}'. These hashtags might be too broad - consider more specific ones. \nUsers found: {users}"
 
+    return f"Found {user_count} users with hashtags '{hashtags}': {', '.join(list(users)[:15])}{'...' if user_count > 15 else ''}. "
+
+
+class FoundUsers(BaseModel):
+    usernames: List[str]
 
 
 def create_user_finder_agent():
@@ -73,6 +76,7 @@ def create_user_finder_agent():
         model=f"{PROVIDER}:{MODEL}",
         tools=[extract_hashtags, find_instagram_users],
         name="user_finder",
+        response_format=FoundUsers,
         prompt="""You find Instagram users for marketing campaigns. 
 
 Your process:
@@ -84,7 +88,7 @@ Whereas a very wide-appeal product can afford to have more broad hashtags.
 
 Keep track of what you've tried and learn from the feedback. When calling extract_hashtags again, pass plenty of context about what happened before so it can adjust strategy.
 
-Goal: Find 15-40 relevant potential customers."""
+Goal: Find 5 relevant potential customers. DO NOT go back and forth between your tools more than 3 times; if you still believe you have too many or too little after third, just stop anyway and return 5 usernames (or less, if you have <5)"""
     )
 
     return user_finder_agent
