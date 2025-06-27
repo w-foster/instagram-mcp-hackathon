@@ -5,16 +5,14 @@ from supabase import create_client
 
 class Settings(BaseSettings):
     ENV: str = "local"
-    MCP_LOCAL_URL: str = "http://localhost:8001"
-    MCP_PROD_URL: str = ""
-    LLM_API_KEY: str = ""
+    MCP_URL: str = "http://localhost:8000/mcp"
     LOG_LEVEL: str = "INFO"
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
 
     @property
     def mcp_url(self):
-        return self.MCP_LOCAL_URL if self.ENV == "local" else self.MCP_PROD_URL
+        return self.MCP_URL
 
     class Config:
         env_file = ".env"

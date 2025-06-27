@@ -1,11 +1,16 @@
 import asyncio
+import os
+from dotenv import load_dotenv
+from app.core.config import settings
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+load_dotenv()
+
 class InstagramClient:
-    def __init__(self):
+    def __init__(self):        
         self.client = MultiServerMCPClient({
             "instagram_dm": {
-                "url":       "http://localhost:8000/mcp",
+                "url": settings.mcp_url,
                 "transport": "streamable_http",
             }
         })
