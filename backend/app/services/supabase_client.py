@@ -9,3 +9,7 @@ def get_all_items():
 def insert_item(data):
     response = supabase.table("discounts").insert(data).execute()
     return response.data
+
+def delete_item(item_id: int):
+    response = supabase.table("discounts").delete().eq("id", item_id).execute()
+    return response.data
