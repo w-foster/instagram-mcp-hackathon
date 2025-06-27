@@ -25,20 +25,13 @@ class InstagramClient:
         resp = await list_chats_tool.arun({"amount": amount})
         return resp
 
-    async def search_posts(self, tags: list[str], amount: int = 10):
+    async def get_user_posts(self, username: str, count: int = 12) -> Dict[str, Any]:
         tools = await self.client.get_tools()
-        search_tool = next(t for t in tools if t.name == "search_posts")
-        resp = await search_tool.arun({
-            "tags": tags,
-            "amount": amount
+        posts_tool = next(t for t in tools if t.name == "get_user_posts")
+        return await posts_tool.arun({
+            "username": username,
+            "count": count
         })
-        return resp
-
-    async def get_user_info(self, username: str):
-        tools = await self.client.get_tools()
-        user_info_tool = next(t for t in tools if t.name == "get_user_info")
-        resp = await user_info_tool.arun({"username": username})
-        return resp
 
 
 async def main():
