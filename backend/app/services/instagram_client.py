@@ -51,10 +51,26 @@ class InstagramClient:
         await self.initialize_tools()
         tool = self._get_tool("list_pending_chats")
         resp = await tool.arun({"amount": amount})
-        try:
-            resp_dict = json.loads(resp) if isinstance(resp, str) else resp
-        except Exception:
+
+        # Try to parse response if it's string
+        if isinstance(resp, str):
+            try:
+                resp_dict = json.loads(resp)
+            except Exception:
+                # If can't parse JSON, wrap the response in an error dict
+                resp_dict = {"success": False, "message": "Failed to parse response JSON", "raw_response": resp}
+        elif isinstance(resp, dict):
             resp_dict = resp
+        else:
+            # Unexpected type, wrap in dict
+            resp_dict = {"success": False, "message": "Unexpected response type", "raw_response": str(resp)}
+
+        # Provide default keys to avoid AttributeErrors
+        if "success" not in resp_dict:
+            resp_dict["success"] = False
+        if "threads" not in resp_dict:
+            resp_dict["threads"] = []
+
         return resp_dict
 
     async def list_messages(self, thread_id: str, amount: int = 20) -> Dict[str, Any]:

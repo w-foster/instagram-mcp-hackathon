@@ -8,7 +8,7 @@ async def check_and_process_pending_chats(insta: InstagramClient):
     print("🔍 Checking for pending chats...")
     pending_resp = await insta.list_pending_chats(amount=20)
     
-    if not pending_resp.get("threads"):
+    if not pending_resp.get("success") or not pending_resp.get("threads"):
         print("⚠️ No pending chats found or error occurred.")
         return
 
