@@ -5,7 +5,6 @@ from app.api.routes import router as api_router
 
 app = FastAPI(title="Instagram MCP Backend")
 
-# Mount API routes under /api prefix
 app.include_router(api_router, prefix="/api")
 
 @app.get("/")

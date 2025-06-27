@@ -1,4 +1,4 @@
-# app/api/routes.py
+# app/api/routes/posts.py
 
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.mcp_client import MCPClient, get_mcp_client
