@@ -6,7 +6,9 @@ from app.core.config import settings
 from typing import Dict, Any
 
 class MCPClient:
-    def __init__(self, base_url: str = settings.MCP_URL):
+    def __init__(self, base_url: str = None):
+        if base_url is None:
+            base_url = settings.mcp_url
         self.base_url = base_url
         self.client = httpx.AsyncClient()
 
@@ -24,3 +26,6 @@ class MCPClient:
         )
         return response.json()
 
+
+def get_mcp_client():
+    return MCPClient()

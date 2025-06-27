@@ -9,8 +9,10 @@ router = APIRouter()
 async def read_items():
     try:
         items = get_all_items()
+        print(items)
         return items
     except Exception as e:
+        print("Error returning items from supabase")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/")
@@ -19,4 +21,5 @@ async def create_item(item: dict):
         inserted = insert_item(item)
         return inserted
     except Exception as e:
+        print("Error inserting items to supabase")
         raise HTTPException(status_code=500, detail=str(e))

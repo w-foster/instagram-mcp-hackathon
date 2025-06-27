@@ -1,6 +1,6 @@
 # app/core/config.py
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from supabase import create_client
 
 class Settings(BaseSettings):
