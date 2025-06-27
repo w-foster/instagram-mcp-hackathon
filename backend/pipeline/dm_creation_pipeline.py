@@ -9,6 +9,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import convert_to_messages
 from pydantic import BaseModel
 
+from dm_creation_prompts import profile_analyzer_prompt, verifier_prompt, message_writer_prompt, supervisor_prompt
+
 
 MODEL = "o4-mini"
 PROVIDER = "openai"
@@ -31,7 +33,7 @@ class DMResult(BaseModel):
 
 
 
-async def setup_instagram_tools():
+async def setup_instagram_tools(filter_tools=None):
     """Setup MCP client to get Instagram tools via HTTP"""
     
     client = MultiServerMCPClient({
@@ -42,7 +44,17 @@ async def setup_instagram_tools():
     })
     
     tools = await client.get_tools()
-    print(f"✅ Loaded {len(tools)} Instagram MCP tools via HTTP")
+    
+    # Filter tools if specified
+    if filter_tools:
+        if isinstance(filter_tools, str):
+            # Single tool name
+            tools = [tool for tool in tools if tool.name == filter_tools]
+        elif isinstance(filter_tools, list):
+            # List of tool names
+            tools = [tool for tool in tools if tool.name in filter_tools]
+    
+    print(f"MCP TOOLS: Loaded {len(tools)} Instagram MCP tools via HTTP")
     return tools
 
 
@@ -82,64 +94,44 @@ async def create_dm_agents():
         model=f"{PROVIDER}:{MODEL}",
         tools=tools,  # get_user_info, get_user_posts, etc.
         name="profile_analyzer",
-        prompt="You analyze Instagram profiles to understand users' interests and content style. You are NOT writing the DM itself, just gathering context which will be passed on to a Writer." \
-        "Use the instagram MCP tools that you have available to you to collect info. " \
-        "DO NOT send any messages or use tools that are not relevant to that specific task."
+        prompt=profile_analyzer_prompt
     )
     
     message_writer = create_react_agent(
         model=f"{PROVIDER}:{MODEL}", 
         tools=[],  # send_message, plus analysis tools
         name="message_writer", 
-        prompt="You write personalized DMs based on profile analysis and product info. " \
-        "Given the context you got about a user, write a DM to advertise the product." \
-        "DO NOT SEND IT, just return it."
+        prompt=message_writer_prompt
     )
     
     verifier = create_react_agent(
         model=f"{PROVIDER}:{MODEL}",
         tools=[],  # No Instagram tools, just verification
         name="verifier",
-        prompt="You verify DM quality - is it personalized, appropriate, and compelling? Answer with your assessment."
+        prompt=verifier_prompt
     )
     
     return profile_analyzer, message_writer, verifier
 
 
-
-supervisor_prompt = """You are a supervisor agent, coordinating Instagram DM creation. You have a number of sub-agents. ONLY call one of them at a time. Process:
-        1. Have profile_analyzer research the target user
-        2. Have message_writer create personalized DM based on analysis, being sure to GIVE IT the context that you got from profile_analyzer. 
-        3. Have verifier check message quality (remember, YOU need to pass the crafted DM to the verifier, this is not automatic)
-        4. If verification fails, coordinate improvements (being sure to pass any feedback to sub-agents you call)
-        Finish once you have a crafted, verified DM. Return that DM."""
-
-test_prompt = """
-Tell me a joke. do nothing else.
-"""
-
 async def create_dm_supervisor():
     """Create the DM creation supervisor"""
     
     profile_analyzer, message_writer, verifier = await create_dm_agents()
+
+    send_tool = await setup_instagram_tools("send_message")
     
     dm_supervisor = create_supervisor(
         agents=[profile_analyzer, message_writer, verifier],
+        tools=send_tool,
         model=ChatOpenAI(model=MODEL),
         #state_schema=CampaignState,
-        prompt=supervisor_prompt + "\n\nAt the end, simply return the final DM and nothing else.",
+        prompt=supervisor_prompt,
         add_handoff_back_messages=True,
         output_mode="last_message",
     ).compile()
     
     return dm_supervisor
-
-
-
-
-
-
-
 
 
 def pretty_print_message(message, indent=False):
@@ -187,6 +179,8 @@ def pretty_print_messages(update, last_message=False):
             print(f"Other update: {node_update}")
         print("\n")
 
+
+
 async def test_dm_supervisor():
     """Test the DM supervisor with sample data"""
     
@@ -206,7 +200,6 @@ async def test_dm_supervisor():
         pretty_print_messages(chunk)
     
     print("\nDM Creation Complete!\n")
-
 
 
 if __name__ == "__main__":

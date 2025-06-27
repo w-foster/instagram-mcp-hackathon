@@ -16,6 +16,10 @@ PROVIDER = "openai"
 hashtag_llm = ChatOpenAI(model=MODEL)
 
 
+class FoundUsers(BaseModel):
+    usernames: List[str]
+
+
 @tool
 def extract_hashtags(product_info: str, context: str = "") -> str:
     """
@@ -35,7 +39,7 @@ def extract_hashtags(product_info: str, context: str = "") -> str:
     - If previous hashtags were "too specific" (found too few users), be broader
     - If no context, start with medium-specificity hashtags
     
-    Return only hashtags separated by commas, WITHOUT # (hashtag) symbols.
+    Return only hashtags separated by commas, WITHOUT # (hashtag) symbols REMOVE ANY HASHTAGS THAT CONTAIN SYMBOLS OR EMOJIS ETC., especially '/'.
     """
     
     response = hashtag_llm.invoke(prompt)
@@ -64,10 +68,6 @@ def find_instagram_users(hashtags: str) -> str:
     #     return f"Found {user_count} users with hashtags '{hashtags}'. These hashtags might be too broad - consider more specific ones. \nUsers found: {users}"
 
     return f"Found {user_count} users with hashtags '{hashtags}': {', '.join(list(users)[:15])}{'...' if user_count > 15 else ''}. "
-
-
-class FoundUsers(BaseModel):
-    usernames: List[str]
 
 
 def create_user_finder_agent():

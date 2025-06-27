@@ -40,14 +40,14 @@ async def user_finder_node(state: CampaignState):
     # async for chunk in user_finder.astream(input, stream_mode="updates", subgraphs=True):
     #     # pretty_print_messages(chunk)
     
-    return {"discovered_users": result["structured_response"]}
+    return {"discovered_users": result["structured_response"].usernames}
 
 
 async def dm_creation_node(state: DMState):
     """Wrapper node that creates fresh DM supervisor for each user"""
     
     # Create fresh supervisor instance for isolation
-    dm_supervisor = create_dm_supervisor()  # REMOVED await
+    dm_supervisor = await create_dm_supervisor()  # REMOVED await
     
     username = state["username"]
     product_info = state["product_info"]
@@ -180,5 +180,16 @@ async def run_instagram_campaign(product_info: str):
 if __name__ == "__main__":
     import asyncio
     
-    product_info = "Premium Anime Figurine Collection - High-quality collectible figures"
+    product_info = """
+Dragon Ball Z S.H. Figuarts Super Saiyan Son Goku “The Games Begin” Ver. – 15 cm
+
+Experience the power of the Cell Saga with Super Saiyan Son Goku in Bandai Tamashii Nations’ latest S.H. Figuarts release. This fully articulated figure features all-new modeling, capturing Goku’s iconic proportions, voluminous spiky hair, and intense facial expressions straight from the anime. Built on the upgraded movable structure refined across the Dragon Ball S.H. Figuarts line, it stands approximately 15 cm tall and comes complete with interchangeable hands and accessories, beautifully presented in a window display box.
+
+Part of the official S.H. Figuarts series, this collector’s item is available for preorder now at £29.95 (or a £4.95 deposit option). Estimated delivery is mid-January 2026. Enjoy free UK shipping, with European and international shipping options also available.
+
+Safety & Age Recommendation:
+This is a collector’s item, not a toy. Contains small parts—choking hazard. Recommended for ages 14 and up.
+"""
+
+    
     asyncio.run(run_instagram_campaign(product_info))
