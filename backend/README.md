@@ -1,6 +1,6 @@
 # FastAPI Backend
 
-A lightweight Flask backend for handling API requests for our Instagram MCP server.
+A lightweight FastAPI backend for handling API requests for our Instagram MCP server.
 
 ## 🚀 Features
 
