@@ -1,6 +1,15 @@
 # instagram-mcp-hackathon
 
-A full-stack project featuring a FastAPI backend and a modern react.js frontend application, built for the Instagram MCP Hackathon.
+Powered by a multi-agent system built using LangGraph, utilising Instagram MCP for tools.
+1) Collect product info from the frontend, scrape the product page, and use LLM to generate a product overview;
+2) User-finder pipeline: an agent with two tools (LLM-based hashtag generation, and Instaloader-based tool for finding users who posted with specified hashtags);
+3) DM-creation pipeline: multi-agent system w/ supervisor pattern (subagents-as-tools) - Profile Analyzer uses MCP to get recent posts and build up context of the user; Message Writer crafts tailored DMs with riddles, according to product + user context; Verifier assesses generated DMs and gives qualitative feedback; Supervisor orchestrates these agents and exerts judgement over control flow, and uses MCP to send the final message;
+4) Replies: periodically check if anyone is waiting for us to reply, via MCP, and create a response -- solved the riddle = get the promo prize.
+
+
+![image](https://github.com/user-attachments/assets/1d4a3203-0a5b-4c4e-a7fc-b2302cb53d05)
+
+
 
 ---
 
