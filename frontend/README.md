@@ -2,15 +2,6 @@
 
 This is the react.js frontend application for the project.
 
-## 🚀 Features
-
-- Python 3 & FastAPI-based API backend  
-- Modular structure for scalability  
-- Built-in environment variable support  
-- Integrated with Supabase (PostgreSQL)
-
----
-
 ## 🛠 Installation Guide
 
 ### 1. Enter the frontend
