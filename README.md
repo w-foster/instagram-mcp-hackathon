@@ -2,6 +2,8 @@
 
 A product which gamifies and automates Instagram outreach, by ingesting product info and sending this into an Agentic system with access to Instagram MCP.
 
+You can find the post on X [here](https://x.com/lucas_chan82333/status/1938782631568585177).
+
 ## Overview
 
 Powered by a multi-agent system built using LangGraph, utilising Instagram MCP for tools.
@@ -73,5 +75,14 @@ Once setup and linked, you can follow the instructions below to locally run the 
 
 ## Environment Variables
 
-Configure environment variables separately for both backend and frontend as described in their README files.
+Configure environment variables separately for both backend and frontend as described in their README.md files.
+
+---
+
+## Contributors
+
+- Will Foster
+- Andy Peng
+- Lucas Chan
+- Yile Huang
 
