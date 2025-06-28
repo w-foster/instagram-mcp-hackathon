@@ -1,5 +1,7 @@
 # instagram-mcp-hackathon
 
+**QuizWizard** - **Gala** **Labs** **Instagram** **Buildathon**
+
 A product which gamifies and automates Instagram outreach, by ingesting product info and sending this into an Agentic system with access to Instagram MCP.
 
 You can find the post on X [here](https://x.com/lucas_chan82333/status/1938782631568585177).
