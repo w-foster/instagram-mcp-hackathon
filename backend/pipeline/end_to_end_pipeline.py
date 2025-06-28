@@ -7,6 +7,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
 from langchain_community.document_loaders import WebBaseLoader
+#from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeStyles
+
 
 from pipeline.dm_creation_pipeline import create_dm_supervisor, pretty_print_messages
 from pipeline.user_finding_pipeline import create_user_finder_agent
@@ -227,6 +229,10 @@ async def run_instagram_campaign(product_payload: ProductPayload):
     
     # Create graph
     campaign_graph = await create_campaign_graph()
+
+    campaign_graph.get_graph(xray=True).draw_mermaid_png(
+        output_file_path="campaign_graph.png"
+    )
     
     # Initial state
     initial_state = {
@@ -245,11 +251,63 @@ async def run_instagram_campaign(product_payload: ProductPayload):
     async for chunk in campaign_graph.astream(initial_state, stream_mode="updates", subgraphs=True):
         pretty_print_messages(chunk)
     
+
+
+
+######## TEMPORARY FOR BETTER VISUALISATION by adding subgraphs directly as nodes, not wrapping them
+async def create_visualization_graph():
+    """Create a graph specifically for visualization with subgraphs as direct nodes"""
+    
+    # Create the subgraphs
+    user_finder_graph = create_user_finder_agent()
+    dm_supervisor_graph = await create_dm_supervisor()
+    
+    # Initialize graph
+    graph = StateGraph(CampaignState)
+    
+    # Add nodes - subgraphs directly, others as functions
+    graph.add_node("product_info_scraper", product_info_scraper)
+    graph.add_node("user_finder", user_finder_graph)  # Direct subgraph
+    graph.add_node("dm_creation", dm_supervisor_graph)  # Direct subgraph  
+    graph.add_node("campaign_summary", create_campaign_summary)
+    
+    # Add edges (same as original)
+    graph.add_edge(START, "product_info_scraper")
+    graph.add_edge("product_info_scraper", "user_finder")
+    
+    # Key part: conditional edge with Send API for map-reduce
+    graph.add_conditional_edges(
+        "user_finder", 
+        continue_to_dm_creation,  # This function returns list of Send objects
+        ["dm_creation"]  # Target nodes for the Send objects
+    )
+    
+    # Reduce step - all dm_creation nodes flow to summary
+    graph.add_edge("dm_creation", "campaign_summary")
+    graph.add_edge("campaign_summary", END)
+    
+    # Compile and return
+    return graph.compile()
+
+async def save_visualization():
+    """Generate and save the graph visualization with subgraphs visible"""
+    viz_graph = await create_visualization_graph()
+    
+    viz_graph.get_graph(xray=True).draw_mermaid_png(
+        output_file_path="campaign_graph_with_subgraphs.png"
+    )
+    
+    print("Visualization saved as campaign_graph_with_subgraphs.png")
+    
     
 
 # Example usage
 if __name__ == "__main__":
+
+
     import asyncio
+
+    asyncio.run(save_visualization())
     
     product_info = """
 Dragon Ball Z S.H. Figuarts Super Saiyan Son Goku “The Games Begin” Ver. – 15 cm
