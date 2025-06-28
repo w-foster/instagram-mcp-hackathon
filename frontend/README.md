@@ -10,7 +10,7 @@ This is the react.js frontend application for the project.
 cd frontend
 ```
 
-### 2. Install node_modeles and packages
+### 2. Install node_modules and packages
 
 Make sure you have [Node.js](https://nodejs.org/) installed (v14 or higher recommended). Then run the following:
 
