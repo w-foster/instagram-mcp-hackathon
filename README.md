@@ -1,5 +1,9 @@
 # instagram-mcp-hackathon
 
+A product which gamifies and automates Instagram outreach, by ingesting product info and sending this into an Agentic system with access to Instagram MCP.
+
+## Overview
+
 Powered by a multi-agent system built using LangGraph, utilising Instagram MCP for tools.
 1) Collect product info from the frontend, scrape the product page, and use LLM to generate a product overview;
 2) User-finder pipeline: an agent with two tools (LLM-based hashtag generation, and Instaloader-based tool for finding users who posted with specified hashtags);
