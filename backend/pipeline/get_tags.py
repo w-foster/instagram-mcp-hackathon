@@ -54,7 +54,7 @@ def fetch_hashtag_usernames(
 if __name__ == "__main__":
     hashtags = ["cats", "dogs"]
     max_posts = 10
-    username = "instamcp2"
+    username = "instamcp4"
     password = "Password1."  # Only needed first time
     users = fetch_hashtag_usernames(hashtags, max_posts, username, password)
     print("Fetched users:")

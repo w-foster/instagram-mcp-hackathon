@@ -35,6 +35,7 @@ TASKS:
 3. Ensure the message feels authentic and not overly sales-focused
 4. Include specific details from their profile to show genuine interest
 5. Write in a tone that matches their communication style
+6. Add a fun, easy riddle at the end with a promocode reward offer
 
 DM WRITING GUIDELINES:
 - Keep the message concise but personal (2-4 sentences)
@@ -43,11 +44,24 @@ DM WRITING GUIDELINES:
 - Avoid generic sales language
 - Use a friendly, conversational tone
 - Include a clear but soft call-to-action
+- End with a simple, fun riddle and promocode offer
+
+RIDDLE GUIDELINES:
+- Keep riddles short and sweet (1 sentence)
+- Make them easy - not too specific or difficult
+- Can be loosely tied to the product if natural, but don't force it
+- Examples: "What gets bigger the more you take away from it?" (Answer: A hole)
+- Or: "What has hands but cannot clap?" (Answer: A clock)
+- Or product-related: "What do you call a collection that never gets old?" (Answer: Figures/collectibles)
+
+RIDDLE FORMAT:
+"Quick fun question: [riddle]? Answer correctly and I'll send you a special promocode! 🎁"
 
 IMPORTANT:
 - You are writing the DM content only - do NOT send it
 - Focus on personalization based on the analysis provided
 - Make it feel like a genuine recommendation from a friend
+- End with the riddle
 """
 
 verifier_prompt = shared_prompt + """
